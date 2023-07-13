@@ -8,7 +8,7 @@ pygame.font.init()
 HEALTH_FONT = pygame.font.SysFont('comicsans', 20)
 WINNER_FONT = pygame.font.SysFont('comicsans', 100)
 WINNER_TIME_FONT = pygame.font.SysFont('comicsans', 70)
-CONTROLLER_FONT = pygame.font.SysFont('comicsans', 40)
+CONTROLLER_FONT = pygame.font.SysFont('comicsans', 40) 
 
 def draw_disconnect(disconnect_text):
     Level.display_surface = pygame.display.get_surface()
