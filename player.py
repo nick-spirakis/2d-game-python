@@ -6,18 +6,48 @@ import os
 #from sprites import Monster #added
 
 
+# adding persistence
+class PlayerData:
+    def __init__(self):
+        self.health = 100
+        self.experience = 0
+        self.coin = 0
+        self.inventory = []
+
+    def update_coins(self, coins):
+        self.coin = coins
+        print(f"update coin function: {self.coin}")
+
+    def get_coins(self):
+        return self.coin
+    
+    def get_health(self):
+        return self.health
+
+
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group, collision_sprites, attack_sprites): #added attack sprites
+    def __init__(self, posi, group, collision_sprites, attack_sprites, door_sprites, player_data, npc_sprites): # added npc_sprites      #added player_data for persistence,      changed pos to posi
         super().__init__(group)
+
+        #moved here - was above self.pos
+        self.direction = pygame.math.Vector2()
+
+        self.posi = posi
 
         #animations
         self.import_assets()
-        self.status = 'down_idle'
+
+        self.status = 'right_idle'
         self.frame_index = 0
 
         # general setup
+
         self.image = self.animations[self.status][self.frame_index]
-        self.rect = self.image.get_rect(center = pos)
+
+        self.rect = self.image.get_rect(center = posi)
+
+        print("center")
+        print(type(posi))
         self.z = LAYERS['main']
 
         #collisions
@@ -26,16 +56,24 @@ class Player(pygame.sprite.Sprite):
         #attacks
         self.attack_sprites = attack_sprites
 
+
+        #added door sprites -------------------------------------------------------------------------------------------
+        self.door_sprites = door_sprites
+
+
+        #npc spries
+        self.npc_sprites = npc_sprites
+
+
         self.swing = pygame.mixer.Sound(os.path.join('Audio', 'blast.mp3'))
 
-        # movement attriutes
-        self.direction = pygame.math.Vector2()
+        # player movement attriutes
+        
         self.pos = pygame.math.Vector2(self.rect.center)
-        #self.speed = 130 #moved to stats
  
         # timers
         self.timers = {
-            "item use": Timez(900, self.use_item), #350
+            "item use": Timez(600, self.use_item), #900
             "item switch": Timez(200)
             }
 
@@ -44,33 +82,17 @@ class Player(pygame.sprite.Sprite):
         self.items_index = 0
         self.selected_item = self.items[self.items_index]#'sword'
 
-        #inventory
-        self.item_inventory = {
-            'coin': 0
-        }
 
         #player stats
-        self.stats = {'health': 100, 'energy': 60, 'attack': 15, 'magic': 4, 'speed': 130}
-        self.health = self.stats['health'] #* 0.6
-        self.exp = 0
+        self.stats = {'health': 100, 'energy': 60, 'attack': 15, 'magic': 4, 'speed': 180, 'item': 1}
+
+        #ADDED to persist health and data
+        self.player_data = player_data
+        self.health = self.player_data.health
+        self.exp = self.player_data.experience
+
         self.speed = self.stats['speed']
 
-        # music
-        self.music = [pygame.mixer.Sound("Audio/Soundtrack1-1.wav"), pygame.mixer.Sound("Audio/Soundtrack2-1.wav")]
-        self.music_index = 0
-        self.music_player = self.music[self.music_index].play(loops=1) #(loops = -1)
-
-        '''
-        #self.music_playe
-                if self.music_index < 1:
-                    self.music_player.stop()
-                    self.music_index += 1
-                    self.music_player = self.music[self.music_index].play(loops=1) #(loops = -1)
-                if self.music_index == 1:
-                    self.music_player.stop()
-                    self.music_index = 0
-                    self.music_player = self.music[self.music_index].play(loops=1) #(loops = -1)
-        '''
 
     def add_coins(self):
         self.exp += 5
@@ -79,22 +101,43 @@ class Player(pygame.sprite.Sprite):
     def use_item(self):
         print("item used")
         if self.selected_item == 'shield':
-            if self.health < 120:
+            if self.health <= 80: #120
                 self.health += 20
+            else:
+                self.health = 100
+
+                #self.health += 20
 
         if self.selected_item == 'sword':
             for monster in self.attack_sprites.sprites():
                 if monster.rect.collidepoint(self.target_pos):
-                    self.swing.play()
                     monster.damage()
+                    self.swing.play()
+                    
 
-        #self.items_index = self.items_index #i made this something that does nothing, can delete later
-        #print(self.selected_item)
+            #should kill a door when hit with sword
+            for entry in self.door_sprites.sprites():
+                if entry.rect.collidepoint(self.target_pos):
+                    entry.door_hit()
 
-    def get_target_pos(self):
+            for npc in self.npc_sprites.sprites():
+                if npc.rect.collidepoint(self.target_pos):
+                    npc.play_message()
+
+
+    def get_target_pos(self): #where the sword hits an enemy
         self.target_pos = self.rect.center + PLAYER_TOOL_OFFSET[self.status.split('_')[0]]
 
 
+    def adjust_left_sword_animation(self):
+        if 'left_sword' in self.animations:
+            for i in range(len(self.animations['left_sword'])):
+                original_frame = self.animations['left_sword'][i]
+                flipped_frame = pygame.transform.flip(original_frame, True, False)
+                scaled_frame = pygame.transform.scale(flipped_frame, (45, 32))
+                self.animations['left_sword'][i] = scaled_frame
+
+    
     def import_assets(self):
         self.animations = {'up': [], 'down': [], 'left': [], 'right': [],
                            'up_idle': [], 'down_idle': [], 'left_idle': [], 'right_idle': [],
@@ -102,9 +145,12 @@ class Player(pygame.sprite.Sprite):
                            'up_shield': [], 'down_shield': [], 'left_shield': [], 'right_shield': []
                            }
         for animation in self.animations.keys():
-            full_path = './Assets/character/' + animation
+            #full_path = './Assets/character/' + animation
+            full_path = './Assets/new_character/' + animation
             self.animations[animation] = import_folder(full_path)
-        #print(self.animations)
+
+        self.adjust_left_sword_animation()
+
 
 
     def animate(self, dt):
@@ -112,11 +158,23 @@ class Player(pygame.sprite.Sprite):
         if self.frame_index >= len(self.animations[self.status]):
             self.frame_index = 0
 
-        self.image = self.animations[self.status][int(self.frame_index)]
+        #if self.status == 'left_sword': # and self.frame_index == 0:
+            #self.image = self.animations[self.status][int(self.frame_index)]
+            #self.rect = self.image.get_rect(center=(self.posi[0] + 1, self.posi[1])) # self.posi[0] + 100
+            #self.pos.x -= 0.0001
+        else:
+            self.image = self.animations[self.status][int(self.frame_index)]
+        
+    
 
+# ============================================================================================================================================
 
+# =============================================================================================================================================
     def input(self):
         keys = pygame.key.get_pressed()
+
+        # added for new animations and left sword swing
+        #self.direction = pygame.math.Vector2(0,0)
 
         if not self.timers["item use"].active:
 
@@ -196,12 +254,14 @@ class Player(pygame.sprite.Sprite):
 
         # items/equipment
         if self.timers["item use"].active:
-            #print("tool is being used")
+            print("tool is being used")
             self.status = self.status.split('_')[0] +'_'+ self.selected_item
+
 
     def update_timers(self):
         for timer in self.timers.values():
             timer.update()
+
     
     def collision(self, direction):
         for sprite in self.collision_sprites.sprites():
@@ -270,14 +330,16 @@ class Player(pygame.sprite.Sprite):
 
 
     def update(self, dt):
+            self.animate(dt)
             self.input()
             self.get_status()
             self.update_timers()
             self.get_target_pos()
             self.move(dt)
-            self.animate(dt)
+            #self.animate(dt)
 
-            #print('player: ')
-            #print(self.pos)
-           #not needed i guess #self.enemy_collision()
+            # updating persistence player
+            self.player_data.health = self.health
+            self.player_data.experience = self.exp
+            #self.player_data.coin = self.coin #dont need
 
