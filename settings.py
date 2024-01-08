@@ -11,7 +11,7 @@ OVERLAY_POSITIONS = {
     'item': (40, SCREEN_HEIGHT - 15),
     'seed': (70, SCREEN_HEIGHT - 5)}
 
-PLAYER_TOOL_OFFSET = {
+PLAYER_TOOL_OFFSET = { #sword hitbox
     'left': Vector2(-16,13), # (-20,0)
     'right': Vector2(24, 13), #(20,0)
     'up': Vector2(0,-20), #(0,-20)

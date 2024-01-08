@@ -2,7 +2,7 @@ import pygame
 from settings import *
 from player import Player
 from overlay import Overlay
-from sprites import Generic, Water, Monster, Brute, Entry, Npc, Boss #added Boss #added Npc     #, added bullet
+from sprites import Generic, Water, Monster, Brute, Entry, Npc, Boss
 from pytmx.util_pygame import load_pygame
 import random
 from support import *
@@ -11,6 +11,7 @@ from enemy import Enemy
 from door import Door
 
 from shop import Shop
+from spellbook import Spellbook #added
 
 import sys
 
@@ -26,12 +27,13 @@ class Level:
         self.display_surface = pygame.display.get_surface()
 
         # sprite groups
-        self.all_sprites = CameraGroup() #pygame.sprite.Group()
+        self.all_sprites = CameraGroup()
         # collision
         self.collision_sprites = pygame.sprite.Group()
         # attacks
         self.attack_sprites = pygame.sprite.Group()
         self.brute_sprites = pygame.sprite.Group()
+
         #making doors
         self.door_sprites = pygame.sprite.Group()
 
@@ -45,8 +47,9 @@ class Level:
         map_filename = f"map{levelNum}.tmx"
         player_start = self.get_player_start_position(map_filename)
 
+        #making the player
         self.player1 = Player(
-                    posi=player_start, #(self.objx, self.objy), 
+                    posi=player_start,
                     group=self.all_sprites, 
                     collision_sprites=self.collision_sprites, 
                     attack_sprites=self.attack_sprites,
@@ -74,11 +77,10 @@ class Level:
 
         self.battle_started = False
         if self.levelNum == 5:
-            self.setupFive() # switches to turn based boss fight arena
+            self.setupFive()
 
 
         # UI
-
         self.overlay = Overlay(self.player1, self.player_data)
 
         self.shop = Shop(self.player_data, self.overlay)
@@ -86,25 +88,28 @@ class Level:
         self.shop_cooldown = 0
         self.shop_cooldown_length = 0.5
 
+        # spellbook
+        self.book = Spellbook(self.player_data, self.overlay)
+        self.book_open = False
+        self.book_cooldown = 0
+        self.book_cooldown_length = 0.5
+
         # npc
         self.npc_dialog_open = False
 
 
-        #joysticks didnt work
+        #joysticks controller work in progress
         #self.joysticks = []
     
 
-
     def get_player_start_position(self, map_filename):
-        tmx_data = load_pygame(map_filename)  # Load your Tiled map
+        tmx_data = load_pygame(map_filename) 
         for obj in tmx_data.get_layer_by_name('player'):
             if obj.name == 'start':
                 return obj.x, obj.y
-        # Return a default position if 'start' object not found
+        #or default pos
         return 720, 1023
     
-
-
 
     def setup(self):
         tmx_data = load_pygame('map1.tmx')
@@ -125,7 +130,7 @@ class Level:
 
         #player
         for obj in tmx_data.get_layer_by_name('player'):
-            if obj.name == 'start': #start is an object in the layer 'player' in tmx, it is used for spawn point
+            if obj.name == 'start':
                 self.player1.posi=(obj.x, obj.y)
                 
 
@@ -136,20 +141,19 @@ class Level:
                         groups=[self.all_sprites, self.collision_sprites, self.attack_sprites],
                         z= LAYERS["main"],
                         player_add = self.player_add,
-                        player=self.player1, #was player
-                        player_pos = self.player1.pos) #was player
+                        player=self.player1, 
+                        player_pos = self.player1.pos) 
                 
                 
-        #new enemy - brute
+        #enemy - brute
         for obj in tmx_data.get_layer_by_name('brute'):
             if obj.name == 'spawner':
-                Brute(pos=(obj.x, obj.y), 
+                Brute(pos=(obj.x, obj.y),
                         groups=[self.all_sprites, self.collision_sprites, self.attack_sprites, self.brute_sprites],
                         z= LAYERS["main"],
                         player_add = self.player_add_brute,
-                        player=self.player1, #was just player
-                        player_pos = self.player1.pos)#, was player
-                        #surface=self.display_surface) #added player and surface
+                        player=self.player1, 
+                        player_pos = self.player1.pos)
 
 
         Generic(pos=(0,0), 
@@ -186,14 +190,6 @@ class Level:
         for obj in tmx_data.get_layer_by_name('player'):
             if obj.name == 'start':
                 self.player1.posi=(obj.x, obj.y)
-                '''
-                self.player = Player(
-                    pos=(obj.x, obj.y), 
-                    group=self.all_sprites, 
-                    collision_sprites=self.collision_sprites, 
-                    attack_sprites=self.attack_sprites,
-                    door_sprites= self.door_sprites) #added door sprites
-                '''
                 
         #enemies
         for obj in tmx_data.get_layer_by_name('enemy'):
@@ -202,10 +198,10 @@ class Level:
                         groups=[self.all_sprites, self.collision_sprites, self.attack_sprites],
                         z= LAYERS["main"],
                         player_add = self.player_add,
-                        player=self.player1, #was player
+                        player=self.player1,
                         player_pos = self.player1.pos)
                 
-        #new enemy - brute
+        #enemy - brute
         for obj in tmx_data.get_layer_by_name('brute'):
             if obj.name == 'spawner':
                 Brute(pos=(obj.x, obj.y), 
@@ -246,12 +242,12 @@ class Level:
         #added this so player is behind roof
         for layer in ['roof']:
             for x, y, surf in tmx_data.get_layer_by_name(layer).tiles():
-                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, self.all_sprites, LAYERS['house top']) #main
+                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, self.all_sprites, LAYERS['house top'])
 
 
         #player
         for obj in tmx_data.get_layer_by_name('player'):
-            if obj.name == 'start': #start is an object in the layer 'player' in tmx, it is used for spawn point
+            if obj.name == 'start': 
                 self.player1.posi=(obj.x, obj.y) # (720, 1023)
                 print("HERE")
                 print(self.player1.posi) #type is tuple
@@ -263,8 +259,8 @@ class Level:
                         groups=[self.all_sprites, self.collision_sprites, self.attack_sprites],
                         z= LAYERS["main"],
                         player_add = self.player_add,
-                        player=self.player1,                            #was player = self.player
-                        player_pos = self.player1.pos) #added player    #was player_pos = self.player1.pos)
+                        player=self.player1,
+                        player_pos = self.player1.pos)
                 print("monster added")
                 
         #DOORS
@@ -273,8 +269,8 @@ class Level:
                 Entry(pos=(obj.x, obj.y), 
                         groups=[self.all_sprites, self.collision_sprites, self.door_sprites],
                         z= LAYERS["main"],
-                        player=self.player1, #was self.player
-                        player_pos = self.player1.pos) #added player
+                        player=self.player1,
+                        player_pos = self.player1.pos) 
                 
         
         #NPCs
@@ -305,7 +301,7 @@ class Level:
 
         if self.boss_bg:
             self.boss_bg.kill()
-            self.boss_bg = None  # Reset self.boss_bg          
+            self.boss_bg = None  #reseting self.boss_bg          
 
         Generic(pos=(0,0), 
                 surf=pygame.image.load('map3.png').convert_alpha(), 
@@ -324,7 +320,7 @@ class Level:
 
     def setupFour(self):
 
-        tmx_data = load_pygame('shop1.tmx') #was tmx_data = load_pygame('shop1.tmx)
+        tmx_data = load_pygame('shop1.tmx')
 
         #added border
         for layer in ['border']:
@@ -334,11 +330,11 @@ class Level:
 
         for layer in ['ground']:
             for x, y, surf in tmx_data.get_layer_by_name(layer).tiles():
-                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, self.all_sprites, LAYERS['ground']) #made it ground, idk
+                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, self.all_sprites, LAYERS['ground'])
 
         #player
         for obj in tmx_data.get_layer_by_name('player'):
-            if obj.name == 'start': #start is an object in the layer 'player' in tmx, it is used for spawn point
+            if obj.name == 'start':
                 self.player1.posi=(obj.x, obj.y)
                 
                 
@@ -348,8 +344,8 @@ class Level:
                 Entry(pos=(obj.x, obj.y), 
                         groups=[self.all_sprites, self.collision_sprites, self.door_sprites],
                         z= LAYERS["main"],
-                        player=self.player1, #was self.player
-                        player_pos = self.player1.pos) #was self.player.pos
+                        player=self.player1,
+                        player_pos = self.player1.pos)
 
 
         Generic(pos=(0,0), 
@@ -364,7 +360,7 @@ class Level:
 
 # =================================================================================================================
 
-# setupFive WILL BE the testing for a turn based set up
+# setupFive is the testing for a turn based set up
 
     def setupFive(self):
 
@@ -383,10 +379,8 @@ class Level:
             if obj.name == 'start':
                 self.player1.posi=(obj.x, obj.y)
                 
-        #boss
-        #for obj in tmx_data.get_layer_by_name('boss'):
-            #if obj.name == 'boss1':
-        self.boss1 = Boss(pos= (900, 300),#(obj.x, obj.y), #messing with spawn of boss sprite (if green dude use (900, 350))
+        
+        self.boss1 = Boss(pos= (900, 300), #900, 300 seems to be the best spot to spawn this boss in
                 groups=[self.all_sprites, self.collision_sprites, self.boss_sprites],
                 z= LAYERS["main"],
                 player_add = self.player_add_boss,
@@ -395,7 +389,7 @@ class Level:
                 player_pos = self.player1.pos,
                 max_health=100,
                 damage=5,
-                speed = 170) #added speed for run chance
+                speed = 170) #added speed for player menu run chance
 
         self.boss_bg = Generic(pos=(0,0), 
                 surf=pygame.image.load('map5.png').convert_alpha(), 
@@ -413,17 +407,17 @@ class Level:
 
     def player_add(self, item):
         #self.player1.item_inventory[item] += 1
-        self.player_data.coin += 1  #self.player1.coin += 30 #was 1
+        self.player_data.coin += 1 
         self.player1.exp += 10
 
     def player_add_brute(self, item):
-        #self.player1.item_inventory[item] += 2 #was self.player.item
+        #self.player1.item_inventory[item] += 2
         self.player_data.coin += 2
-        self.player1.exp += 20 #was self.player.exp
+        self.player1.exp += 20
 
     # for turn based boss
     def player_add_boss(self, item):
-        #self.player1.item_inventory[item] += 5 #was self.player.item
+        #self.player1.item_inventory[item] += 5
         self.player_data.coin += 5
         self.player1.exp += 50
 
@@ -432,32 +426,24 @@ class Level:
     def run(self, dt):
         self.display_surface.fill('black')
 
-        #chack npc
-        #print("NPCs in self.npc_sprites:")
-        #for npc in self.npc_sprites:
-            #print(npc)
-
-        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites) # added npc
+        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites) # added brute sprites
         self.all_sprites.update(dt)
 
-        for brute in self.brute_sprites:
-            brute.update(dt)
-
         self.attack_sprites.update(dt)
+
         self.door_sprites.update(dt)
 
         #updating npc sprites
         self.npc_sprites.update(dt)
-        self.npc_sprites.draw(self.display_surface) # ADDED DRAW
+        self.npc_sprites.draw(self.display_surface)
 
         #updating boss sprites
         self.boss_sprites.update(dt)
         self.boss_sprites.draw(self.display_surface)
 
-
-
         self.overlay.display_items()
 
+        #for shop
         self.shop_cooldown -= dt
         keys = pygame.key.get_pressed()
 
@@ -482,25 +468,53 @@ class Level:
 
             for event in events:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:  # Check for Enter key press
+                    if event.key == pygame.K_RETURN:
                         selected_item = self.shop.options[self.shop.selected_option]
                         self.shop.buy_item(selected_item, self.player_data)
 
-                        #print("get coins pd from level event after buy")
                         coin = self.player_data.get_coins()
                         print(coin)
 
         else:
             self.shop.close_shop1()
 
-        
+
+        # for spellbook
+        self.book_cooldown -= dt
+
+        if keys[pygame.K_BACKSLASH]:
+            if self.book_cooldown <= 0:
+                if not self.book_open:
+                    print("opening spellbook")
+                    self.book_open = True
+                    self.book.open_spellbook()
+                    print("spellbook displayed")
+                    
+                else:
+                    self.book_open = False
+                    print("spellbook closing")
+                self.book_cooldown = self.book_cooldown_length
+
+
+        if self.book_open:
+            self.book.navigate_options(events)
+
+            self.book.navigate_all_options(events)
+
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.book.swap_spells()
+
+        else:
+            self.book.close_spellbook()
+
+        # for npcs
         for npc in self.npc_sprites:
             if npc.dialog_is_open():
                 npc.show_dialog(npc.text)
                 
-                #close if player gets too far from npc
-                #if self.player1.pos
-
+                # might add a feature to close if player gets too far from npc
                 for event in events:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_RETURN:
@@ -508,15 +522,17 @@ class Level:
 
         
         # for turn based battle
-
         if self.levelNum == 5:
             self.battle_started = True
 
         elif self.levelNum == 3:
             self.battle_started = False
+
             if self.boss_bg != None:
                 self.boss_bg.kill()
                 print("Killed boss bg")
+                
+                self.boss_bg.stop()
                 self.boss_bg = None
 
         if self.battle_started == True:
@@ -527,36 +543,49 @@ class Level:
 class CameraGroup(pygame.sprite.Group):
     def __init__(self):
         super().__init__()
-        self.display_suface = pygame.display.get_surface()
+        self.display_surface = pygame.display.get_surface()
         self.offset = pygame.math.Vector2()
 
+        self.half_width = self.display_surface.get_size()[0] // 2
+        self.half_height = self.display_surface.get_size()[1] // 2
 
-    def custom_draw(self, player, shop, npc_sprites): #added npc_sprites
-        self.offset.x = player.rect.centerx - SCREEN_WIDTH / 2
-        self.offset.y = player.rect.centery - SCREEN_HEIGHT / 2
+
+    def custom_draw(self, player, shop, npc_sprites, book, brute_sprites):
+        self.offset.x = player.rect.centerx - self.half_width 
+        self.offset.y = player.rect.centery - self.half_height
 
         for l in LAYERS.values():
             for sprite in sorted(self.sprites(), key = lambda sprite: sprite.rect.centery):
                 if sprite.z == l:
                     offset_rect = sprite.rect.copy()
+                    
                     offset_rect.center -= self.offset
-                    self.display_suface.blit(sprite.image, offset_rect)
+                    self.display_surface.blit(sprite.image, offset_rect)
 
                     if sprite == player:
                         hitbox_rect = player.hitbox.copy()
                         hitbox_rect.center = offset_rect.center
-                        #pygame.draw.rect(self.display_suface, 'green', hitbox_rect, 5) # for hitbox
                         target_pos = offset_rect.center + PLAYER_TOOL_OFFSET[player.status.split('_')[0]]
-                        pygame.draw.circle(self.display_suface, 'blue', target_pos, 5) # for sword point hitbox
+                        # draw sword hitbox
+                        #pygame.draw.circle(self.display_surface, 'blue', target_pos, 5)
             
+            # new blasts for brute
+            for brute in brute_sprites:
+                brute_blasts = brute.get_blasts()
+                for blast in brute_blasts:
+                    # draw blast
+                    offset_blast_rect = blast.rect.copy()
+                    offset_blast_rect.center -= self.offset
+                    self.display_surface.blit(blast.image, offset_blast_rect)
+
             if shop.is_open():
                 shop.show_menu(shop.options)
 
-            # added
             for npc in npc_sprites:
                 if npc.dialog_is_open():
                     npc.show_dialog(npc.text)
-                    #npc.close_dialog()
 
-            
+            if book.is_open():
+                book.show_menu(book.options)
+                book.show_all_spells(book.unlocked_spells)
 

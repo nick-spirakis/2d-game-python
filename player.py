@@ -13,6 +13,11 @@ class PlayerData:
         self.experience = 0
         self.coin = 0
         self.inventory = []
+        #added below
+        self.spell_book = ["spell 1", "Dia", "Hellfire"] # ["spell 1", "spell 2", "spell 3"]
+        self.unlocked_spells = ["spell 1", "Dia", "Hellfire", "Metia", "Red Roc"] # added for spell book
+        self.levelInt = 1
+
 
     def update_coins(self, coins):
         self.coin = coins
@@ -23,10 +28,33 @@ class PlayerData:
     
     def get_health(self):
         return self.health
+    
+    #adding saves with json ----------------------------------------------------------
+    def to_dict(self):
+        return {
+            "health": self.health,
+            "experience": self.experience,
+            "coin": self.coin,
+            "inventory": self.inventory,
+            "spell_book": self.spell_book,
+            "leve_int": self.levelInt
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        player_data = cls()
+        player_data.health = data.get("health", 100)
+        player_data.experience = data.get("experience", 0)
+        player_data.coin = data.get("coin", 0)
+        player_data.inventory = data.get("inventory", [])
+        player_data.spell_book = data.get("spell_book", ["spell 1", "Dia", "Hellfire"])
+        player_data.levelInt = data.get("levelInt", 1)
+        return player_data
+    #------------------------------------------------------------------------------------
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, posi, group, collision_sprites, attack_sprites, door_sprites, player_data, npc_sprites): # added npc_sprites      #added player_data for persistence,      changed pos to posi
+    def __init__(self, posi, group, collision_sprites, attack_sprites, door_sprites, player_data, npc_sprites): # added npc_sprites, added player_data for persistence
         super().__init__(group)
 
         #moved here - was above self.pos
@@ -67,9 +95,13 @@ class Player(pygame.sprite.Sprite):
 
         self.swing = pygame.mixer.Sound(os.path.join('Audio', 'blast.mp3'))
 
+        self.hit = pygame.mixer.Sound(os.path.join('Audio', 'clap.mp3'))
+
         # player movement attriutes
         
         self.pos = pygame.math.Vector2(self.rect.center)
+
+        
  
         # timers
         self.timers = {
@@ -88,8 +120,13 @@ class Player(pygame.sprite.Sprite):
 
         #ADDED to persist health and data
         self.player_data = player_data
+
         self.health = self.player_data.health
         self.exp = self.player_data.experience
+
+        #spell book persist ------------------------------------------------------------------
+        self.spell_book = self.player_data.spell_book
+        self.spell_index = 0
 
         self.speed = self.stats['speed']
 
@@ -101,12 +138,10 @@ class Player(pygame.sprite.Sprite):
     def use_item(self):
         print("item used")
         if self.selected_item == 'shield':
-            if self.health <= 80: #120
+            if self.health <= 80:
                 self.health += 20
             else:
                 self.health = 100
-
-                #self.health += 20
 
         if self.selected_item == 'sword':
             for monster in self.attack_sprites.sprites():
@@ -114,7 +149,6 @@ class Player(pygame.sprite.Sprite):
                     monster.damage()
                     self.swing.play()
                     
-
             #should kill a door when hit with sword
             for entry in self.door_sprites.sprites():
                 if entry.rect.collidepoint(self.target_pos):
@@ -137,7 +171,16 @@ class Player(pygame.sprite.Sprite):
                 scaled_frame = pygame.transform.scale(flipped_frame, (45, 32))
                 self.animations['left_sword'][i] = scaled_frame
 
-    
+
+    def adjust_left_sheild_animation(self):
+        if 'left_shield' in self.animations:
+            for i in range(len(self.animations['left_shield'])):
+                original_frame = self.animations['left_shield'][i]
+                flipped_frame = pygame.transform.flip(original_frame, True, False)
+                scaled_frame = pygame.transform.scale(flipped_frame, (45, 32))
+                self.animations['left_shield'][i] = scaled_frame
+
+
     def import_assets(self):
         self.animations = {'up': [], 'down': [], 'left': [], 'right': [],
                            'up_idle': [], 'down_idle': [], 'left_idle': [], 'right_idle': [],
@@ -150,22 +193,18 @@ class Player(pygame.sprite.Sprite):
             self.animations[animation] = import_folder(full_path)
 
         self.adjust_left_sword_animation()
+        self.adjust_left_sheild_animation()
 
 
 
     def animate(self, dt):
         self.frame_index += 4 * dt
+
         if self.frame_index >= len(self.animations[self.status]):
             self.frame_index = 0
-
-        #if self.status == 'left_sword': # and self.frame_index == 0:
-            #self.image = self.animations[self.status][int(self.frame_index)]
-            #self.rect = self.image.get_rect(center=(self.posi[0] + 1, self.posi[1])) # self.posi[0] + 100
-            #self.pos.x -= 0.0001
         else:
             self.image = self.animations[self.status][int(self.frame_index)]
         
-    
 
 # ============================================================================================================================================
 
@@ -174,8 +213,6 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
 
         # added for new animations and left sword swing
-        #self.direction = pygame.math.Vector2(0,0)
-
         if not self.timers["item use"].active:
 
             # keyboard movement
@@ -210,7 +247,7 @@ class Player(pygame.sprite.Sprite):
                 print(self.items_index)
                 self.selected_item = self.items[self.items_index]
 
-            #controller
+            # ps4 controller support - work in progress
             '''
             for joystick in Level.joysticks:
 
@@ -285,28 +322,11 @@ class Player(pygame.sprite.Sprite):
                         self.pos.y = self.hitbox.centery
 
 
-    def enemy_collision(self, direction): #added direction
+    def enemy_collision(self, direction):
         for sprite in self.attack_sprites.sprites():
             if sprite.hitbox.colliderect(self.hitbox):
                 print("WALKED INTO AN ENEMY")
-                #self.health -=1
-                #added this
-                #if direction == 'horizontal':
-                    #if self.direction.x >0: #player move rigth
-                        #self.hitbox.right = sprite.hitbox.left
-                    #if self.direction.x<0: #player moving left
-                        #self.hitbox.left = sprite.hitbox.right
-                    #self.rect.centerx = self.hitbox.centerx
-                    #self.pos.x = self.hitbox.centerx
                 
-                #if direction == 'vertical':
-                    #if self.direction.y >0: #player move down
-                        #self.hitbox.bottom = sprite.hitbox.top
-                   #if self.direction.y <0: #player moving up
-                        #self.hitbox.top = sprite.hitbox.bottom
-                    #self.rect.centery = self.hitbox.centery
-                    #self.pos.y = self.hitbox.centery
-
 
     def move(self, dt):
         if self.direction.magnitude() > 0:
@@ -317,7 +337,7 @@ class Player(pygame.sprite.Sprite):
         self.hitbox.centerx = round(self.pos.x)
         self.rect.centerx = self.hitbox.centerx
         
-        self.enemy_collision('horizontal') #added this (IT WORKS!!!!)
+        self.enemy_collision('horizontal')
         self.collision('horizontal')
 
         #vert movement
@@ -325,7 +345,7 @@ class Player(pygame.sprite.Sprite):
         self.hitbox.centery = round(self.pos.y)
         self.rect.centery = self.hitbox.centery
         
-        self.enemy_collision('vertical') #added this
+        self.enemy_collision('vertical')
         self.collision('vertical')
 
 
@@ -336,10 +356,8 @@ class Player(pygame.sprite.Sprite):
             self.update_timers()
             self.get_target_pos()
             self.move(dt)
-            #self.animate(dt)
 
             # updating persistence player
             self.player_data.health = self.health
             self.player_data.experience = self.exp
-            #self.player_data.coin = self.coin #dont need
 

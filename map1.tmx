@@ -32,9 +32,6 @@
   </object>
  </objectgroup>
  <objectgroup id="10" name="brute">
-  <object id="128" x="594" y="84">
-   <point/>
-  </object>
   <object id="130" name="spawner" x="598" y="86">
    <point/>
   </object>
