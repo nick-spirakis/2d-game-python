@@ -101,6 +101,9 @@ class Player(pygame.sprite.Sprite):
         
         self.pos = pygame.math.Vector2(self.rect.center)
 
+        #party function
+        self.party_index = 0
+
         
  
         # timers
@@ -360,4 +363,7 @@ class Player(pygame.sprite.Sprite):
             # updating persistence player
             self.player_data.health = self.health
             self.player_data.experience = self.exp
+
+            
+            #print("health is: %f" % self.player_data.health)
 

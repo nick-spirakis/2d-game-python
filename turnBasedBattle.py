@@ -3,13 +3,19 @@ import sys
 import time #added for animations
 
 class TurnBasedBattle:
-    def __init__(self, level, player, player_data, enemy_boss, levelNum, overlay):
+    def __init__(self, level, player, player_data, enemy_boss, levelNum, overlay, party): #added party
 
         self.level = level
         self.levelNum = levelNum
 
         self.player = player
         self.enemy_boss = enemy_boss
+
+        #------------------------------------------------------------------------------------------
+        # adding the party
+        self.party = party
+        self.party_members = self.party.members # list of party members
+        #-------------------------------------------------------------------------------------------
         
         self.enemy_boss.pos.x = 870 #870
         self.enemy_boss.pos.y = 400 #400

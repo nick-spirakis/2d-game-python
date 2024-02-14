@@ -3,6 +3,10 @@ from settings import *
 from level import Level
 from player import PlayerData #added for persistence
 
+from party import Party #added for party system
+from partyMembers import PartyMember
+
+from mainMenu import MainMenu
 
 pygame.font.init()
 
@@ -78,7 +82,7 @@ class Game:
 
         self.level = Level(self.levelSelect, self.player_data)
         self.enemys = self.level.attack_sprites # if = <Group(0 sprites)> then win game
-        self.player = self.level.player1 #was self.level.player
+        self.player = self.level.player1
 
         #making doors
         self.doors = self.level.door_sprites
@@ -110,6 +114,9 @@ class Game:
             self.levelInt = 1
             self.player_data = PlayerData()
             pass
+
+        #main menu
+        self.main_menu = MainMenu()
         
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -150,7 +157,42 @@ class Game:
         except json.JSONDecodeError:
             print("Error decoding JSON.")
             return None
+        
+
+    def delete_player_data(self):
+        folder_path = './Saves/'
+        file_path = os.path.join(folder_path, 'player_data.json')
+
+        try:
+            os.remove(file_path)
+            print(f"Player data deleted: {file_path}")
+        except FileNotFoundError:
+            print("File not found.")
+        except Exception as e:
+            print(f"Error deleting player data: {e}")
+
     #-------------------------------------------------------------------------------------------------------------------
+        
+    def menu(self):
+        while True:
+            self.music = [pygame.mixer.Sound("Audio/Menu2.wav")]
+            self.music_index = 0
+            self.music_player = self.music[self.music_index].play(loops=-1) #(loops = -1)
+
+            menu_result = self.main_menu.run()
+
+            if menu_result == "new_game":
+                self.delete_player_data()
+                self.music_player.pause()
+                game = Game()
+                game.run()
+
+            elif menu_result == "load_game":
+                loaded_data = self.load_player_data()
+                if loaded_data:
+                    self.music_player.pause()
+                    game = Game()
+                    game.run()
         
     
     def run(self):
@@ -265,4 +307,5 @@ class Game:
 
 if __name__ == '__main__':
     game = Game()
-    game.run()
+    #game.run()
+    game.menu()

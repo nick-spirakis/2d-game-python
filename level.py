@@ -17,6 +17,9 @@ import sys
 
 from turnBasedBattle import TurnBasedBattle
 
+from party import Party
+from partyMembers import PartyMember
+
 class Level:
     def __init__(self, levelNum, player_data): #added player data
         
@@ -61,6 +64,29 @@ class Level:
         self.player1.posi = pygame.math.Vector2(self.player1.posi)
 
         self.player_data = player_data
+
+        
+        #party
+
+        # create a sprite group for party members
+        self.party_sprites = pygame.sprite.Group()
+
+        # create instances of PartyMember and add them to the sprite group
+        
+        self.party = Party(self.player1) #player1 is user, initializes party
+
+        #penguin = PartyMember(self.player1.posi, self.player1, self.party, 1) # make a party member
+        #self.party.add_member(penguin) # add to party
+        #self.party_sprites.add(penguin) # add to sprite group
+
+        for i in range(1):
+            image_path = "./Assets/penguin"  #"./Assets/character" #/down_idle/0.png"
+            penguin = PartyMember((0,0), self.player1, self.party, i, image_path)  # added image_path
+            self.party.add_member(penguin)
+            print("TOP:")
+            print(len(self.party.members))
+            self.party_sprites.add(penguin)
+
 
         #states
         if self.levelNum == 1:
@@ -426,7 +452,7 @@ class Level:
     def run(self, dt):
         self.display_surface.fill('black')
 
-        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites) # added brute sprites
+        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites, self.party_sprites, self.levelNum) #added levelNum
         self.all_sprites.update(dt)
 
         self.attack_sprites.update(dt)
@@ -435,13 +461,24 @@ class Level:
 
         #updating npc sprites
         self.npc_sprites.update(dt)
-        self.npc_sprites.draw(self.display_surface)
+        #self.npc_sprites.draw(self.display_surface) #removed this to see if duplicates go away
 
         #updating boss sprites
         self.boss_sprites.update(dt)
         self.boss_sprites.draw(self.display_surface)
 
         self.overlay.display_items()
+
+        # Update the positions directly using the player's position
+        main_player_pos = self.player1.rect.topleft
+        for i, party_member in enumerate(self.party.members):
+            # Calculate relative position behind the player
+            party_member.rect.topleft = (main_player_pos[0], main_player_pos[1])
+
+        self.party_sprites.update(dt)
+
+        #self.party_sprites.draw(self.display_surface) #(caused the duplicate penguin)
+
 
         #for shop
         self.shop_cooldown -= dt
@@ -536,7 +573,7 @@ class Level:
                 self.boss_bg = None
 
         if self.battle_started == True:
-            battle = TurnBasedBattle(self, self.player1, self.player_data, self.boss1, self.levelNum, self.overlay)
+            battle = TurnBasedBattle(self, self.player1, self.player_data, self.boss1, self.levelNum, self.overlay, self.party) #added party
             battle.run()
             
 
@@ -549,8 +586,10 @@ class CameraGroup(pygame.sprite.Group):
         self.half_width = self.display_surface.get_size()[0] // 2
         self.half_height = self.display_surface.get_size()[1] // 2
 
+        self.last_known_direction = (0, 0)
 
-    def custom_draw(self, player, shop, npc_sprites, book, brute_sprites):
+
+    def custom_draw(self, player, shop, npc_sprites, book, brute_sprites, party_sprites, levelNum): #added levelNum
         self.offset.x = player.rect.centerx - self.half_width 
         self.offset.y = player.rect.centery - self.half_height
 
@@ -588,4 +627,47 @@ class CameraGroup(pygame.sprite.Group):
             if book.is_open():
                 book.show_menu(book.options)
                 book.show_all_spells(book.unlocked_spells)
+        
+            # Draw party members with a slightly increased offset
+
+            # Check if the player is moving before updating last_known_direction
+            if player.direction.x != 0 or player.direction.y != 0:
+                if player.direction.x == -1:
+                    self.last_known_direction = (-1, 0)
+                elif player.direction.x == 1:
+                    self.last_known_direction = (1, 0)
+                elif player.direction.y == -1:
+                    self.last_known_direction = (0, -1)
+                elif player.direction.y == 1:
+                    self.last_known_direction = (0, 1)
+
+            for party_member in party_sprites:
+                offset_rect = party_member.rect.copy()
+                offset_rect.center -= self.offset
+
+                if levelNum == 5: 
+                    offset_rect.x += 10
+                    offset_rect.y -= 40  
+                    party_member.status = "right"
+                else:
+                    if self.last_known_direction == (-1, 0):
+                        offset_rect.x += 20  # Adjust this value to control the horizontal distance
+                        offset_rect.y += 10  # Adjust this value to control the vertical distance
+                        party_member.status = "left"
+
+                    elif self.last_known_direction == (1, 0):
+                        offset_rect.x -= 20  
+                        offset_rect.y += 10  
+                        party_member.status = "right"
+
+                    elif self.last_known_direction == (0, -1):
+                        offset_rect.y += 50  
+                        party_member.status = "up"
+
+                    elif self.last_known_direction == (0, 1):
+                        offset_rect.y -= 30  
+                        party_member.status = "down"
+
+                self.display_surface.blit(party_member.image, offset_rect)
+                #print(self.last_known_direction)
 

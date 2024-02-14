@@ -15,7 +15,7 @@ class Overlay:
         #new UI
         self.font = pygame.font.SysFont('arial', 20) #pygame.font.Font(UI_FONT, UI_FONT_SIZE)  
         #bar setup
-        self.health_bar_rect = pygame.Rect(70, SCREEN_HEIGHT-40, HEALTH_BAR_WIDTH, BAR_HEIGHT)
+        self.health_bar_rect = pygame.Rect(70, SCREEN_HEIGHT-40, HEALTH_BAR_WIDTH + 5, BAR_HEIGHT + 5)
 
 
         #imports
@@ -36,6 +36,14 @@ class Overlay:
         # bar
         pygame.draw.rect(self.display_surface, color, current_rect)
         pygame.draw.rect(self.display_surface, UI_BORDER_COLOR, bg_rect, 3)
+
+        # hearts
+        self.heart_image = pygame.image.load('./Assets/empty_health_bar_heart_10.png') #3
+        self.scaled_heart_image = pygame.transform.scale(self.heart_image, (int(self.heart_image.get_width() * 0.91), int(self.heart_image.get_height() * 0.8))) #(*1, *0.8)
+
+        heart_rect = self.heart_image.get_rect(bottomleft= (self.display_surface.get_size()[0] - 1210, self.display_surface.get_size()[1]- 10))
+
+        self.display_surface.blit(self.scaled_heart_image, heart_rect)
 
 
     def show_exp(self, exp):
