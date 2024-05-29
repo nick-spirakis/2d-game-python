@@ -10,15 +10,9 @@ class TurnBasedBattle:
 
         self.player = player
         self.enemy_boss = enemy_boss
-
-        #------------------------------------------------------------------------------------------
-        # adding the party
-        self.party = party
-        self.party_members = self.party.members # list of party members
-        #-------------------------------------------------------------------------------------------
         
-        self.enemy_boss.pos.x = 870 #870
-        self.enemy_boss.pos.y = 400 #400
+        self.enemy_boss.pos.x = 870
+        self.enemy_boss.pos.y = 400
 
         self.battle_surface = pygame.display.get_surface()
         
@@ -26,13 +20,22 @@ class TurnBasedBattle:
         self.selected_option = 0
         self.is_player_turn = True
 
+        #------------------------------------------------------------------------------------------
+        # adding the party
+        self.party = party
+        self.party_members = self.party.members # list of party members
+
+        self.is_party_member_turn = False
+
+        #-------------------------------------------------------------------------------------------
+
         self.menu_width = 300
         self.menu_height = 200
         self.menu_x = 50
         self.menu_y = 50
         self.option_colors = [(255, 255, 255)] * len(self.menu_options)
 
-        self.current_attck_name = "" #enemy attack name
+        self.current_attack_name = "" #enemy attack name
         self.player_data = player_data
         self.overlay = overlay
 
@@ -402,49 +405,133 @@ class TurnBasedBattle:
         pygame.display.flip()
 
     
-    def play_enemy_attack_animation(self):
+    def play_enemy_attack_animation(self, name): #added name
 
         #enemy attack animation
-        temp_surface = pygame.Surface((80, 80))  # Temporary surface for the animation
+        temp_surface = pygame.Surface((100, 110))  # Temporary surface for the animation (80, 80)
         
         temp_surface.fill((0, 0, 0))
 
         self.copy_battle_surface = self.battle_surface.copy()
 
-        
-        attack = pygame.image.load('Assets/boss/attack1/0.png')
-        temp_surface.blit(attack, (0, 0))
-        self.battle_surface.blit(temp_surface, (880, 300))
-        pygame.display.flip()
-        time.sleep(0.1)
+        if name == "Swipe":
+            attack = pygame.image.load('Assets/boss/attack1/0.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (880, 300))
+            pygame.display.flip()
+            time.sleep(0.1)
 
-        attack = pygame.image.load('Assets/boss/attack1/1.png')
-        temp_surface.blit(attack, (0, 0))
-        self.battle_surface.blit(temp_surface, (880, 300))
-        pygame.display.flip()
-        time.sleep(0.1)
+            attack = pygame.image.load('Assets/boss/attack1/1.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (880, 300))
+            pygame.display.flip()
+            time.sleep(0.1)
 
-        attack = pygame.image.load('Assets/boss/attack1/2.png')
-        temp_surface.blit(attack, (0, 0))
-        # Blit the temporary surface onto the battle surface
-        self.battle_surface.blit(temp_surface, (880, 300))
+            attack = pygame.image.load('Assets/boss/attack1/2.png')
+            temp_surface.blit(attack, (0, 0))
+            # Blit the temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (880, 300))
+
+            # Display the temporary surface
+            temp_surface.blit(self.battle_surface, (0, 0))
+            pygame.display.flip()
+
+            # Delay for the animation
+            time.sleep(0.09)
+
+            # Clear the temporary surface to reveal the original content
+            temp_surface.fill((0, 0, 0, 0))
+
+            # Blit the updated temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (0, 0))
+
+            # Display the updated battle surface
+            self.battle_surface.blit(self.copy_battle_surface, (0, 0))
 
 
-        # Display the temporary surface
-        temp_surface.blit(self.battle_surface, (0, 0))
-        pygame.display.flip()
 
-        # Delay for the animation
-        time.sleep(0.09)
+        if name == "Devastate":
+            attack = pygame.image.load('Assets/boss/attack2/0.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (880, 250))
+            pygame.display.flip()
+            time.sleep(0.1)
 
-        # Clear the temporary surface to reveal the original content
-        temp_surface.fill((0, 0, 0, 0))
+            attack = pygame.image.load('Assets/boss/attack2/1.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (880, 250))
+            pygame.display.flip()
+            time.sleep(0.1)
 
-        # Blit the updated temporary surface onto the battle surface
-        self.battle_surface.blit(temp_surface, (0, 0))
+            attack = pygame.image.load('Assets/boss/attack2/2.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (880, 250))
+            pygame.display.flip()
+            time.sleep(0.1)
 
-        # Display the updated battle surface
-        self.battle_surface.blit(self.copy_battle_surface, (0, 0))
+            attack = pygame.image.load('Assets/boss/attack2/3.png')
+            temp_surface.blit(attack, (0, 0))
+            # Blit the temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (880, 250))
+
+
+            # Display the temporary surface
+            temp_surface.blit(self.battle_surface, (0, 0))
+            pygame.display.flip()
+
+            # Delay for the animation
+            time.sleep(0.09)
+
+            # Clear the temporary surface to reveal the original content
+            temp_surface.fill((0, 0, 0, 0))
+
+            # Blit the updated temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (0, 0))
+
+            # Display the updated battle surface
+            self.battle_surface.blit(self.copy_battle_surface, (0, 0))
+
+
+        if name == "Crush":
+            attack = pygame.image.load('Assets/boss/attack3/0.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (890, 295))
+            pygame.display.flip()
+            time.sleep(0.1)
+
+            attack = pygame.image.load('Assets/boss/attack3/1.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (890, 295))
+            pygame.display.flip()
+            time.sleep(0.1)
+
+            attack = pygame.image.load('Assets/boss/attack3/2.png')
+            temp_surface.blit(attack, (0, 0))
+            self.battle_surface.blit(temp_surface, (890, 295))
+            pygame.display.flip()
+            time.sleep(0.1)
+
+            attack = pygame.image.load('Assets/boss/attack3/3.png')
+            temp_surface.blit(attack, (0, 0))
+            # Blit the temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (890, 295))
+
+
+            # Display the temporary surface
+            temp_surface.blit(self.battle_surface, (0, 0))
+            pygame.display.flip()
+
+            # Delay for the animation
+            time.sleep(0.09)
+
+            # Clear the temporary surface to reveal the original content
+            temp_surface.fill((0, 0, 0, 0))
+
+            # Blit the updated temporary surface onto the battle surface
+            self.battle_surface.blit(temp_surface, (0, 0))
+
+            # Display the updated battle surface
+            self.battle_surface.blit(self.copy_battle_surface, (0, 0))
 
         #-----------------------------------------------------------------------
         # player hit animation 
@@ -580,19 +667,21 @@ class TurnBasedBattle:
     def enemy_turn(self):
         time.sleep(1)
         print("enemy selecting attack")
-        self.current_attck_name = (f"Used: {self.enemy_boss.select_random_attack() }")
+        #self.current_attack_name = (f"Used: {self.enemy_boss.select_random_attack() }")
+
+        self.current_attack_name = (self.enemy_boss.select_random_attack())
         
-        print(self.current_attck_name)
+        print(self.current_attack_name)
         print(" enemy attacking ")
 
         #animate attacks
 
-        self.play_enemy_attack_animation()
+        self.play_enemy_attack_animation(self.current_attack_name) #added self.current_attack_name
 
         enemy_damage = self.enemy_boss.calculate_damage()
 
         self.enemy_boss.player_take_damage_turn_based(enemy_damage)
-        
+    
         # Check if the battle is over
         if self.enemy_boss.is_player_defeated():
             print("player dead")
@@ -602,6 +691,17 @@ class TurnBasedBattle:
             self.is_player_turn = True
             self.main_menu_nav = True
 
+        
+
+        # cntrl ? to mass comment highlighted code
+
+        # if self.current_attack_name == "Swipe":      # {"Swipe": 3, "Crush": 5, "Devastate": 10}
+
+# ********************************************************************************
+    def party_turn(self):
+        time.sleep(1)
+        print("party member selecting attack")
+    
 
 # ********************************************************************************
     def player_turn(self):
@@ -676,8 +776,8 @@ class TurnBasedBattle:
         boss_health_percentage = self.enemy_boss.get_boss_health()
         health_bar_width = int((boss_health_percentage/100) * self.enemy_boss.max_health)
 
-        pygame.draw.rect(self.battle_surface, 'gray', (self.enemy_boss.pos.x, self.enemy_boss.pos.y, self.enemy_boss.max_health, 4))
-        pygame.draw.rect(self.battle_surface, 'red', (self.enemy_boss.pos.x, self.enemy_boss.pos.y, health_bar_width, 4))
+        pygame.draw.rect(self.battle_surface, 'gray', (self.enemy_boss.pos.x, self.enemy_boss.pos.y - 200, self.enemy_boss.max_health, 4))
+        pygame.draw.rect(self.battle_surface, 'red', (self.enemy_boss.pos.x, self.enemy_boss.pos.y - 200, health_bar_width, 4)) #added -150
 
 #=====================================
 
@@ -697,6 +797,11 @@ class TurnBasedBattle:
             #boss dead
             if self.enemy_boss.is_defeated():
                 print("boss defeated returning to map 3")
+
+                self.player_data.coin += 5
+                self.player.exp += 50
+                self.player_data.gain_experience(50)
+
                 break
             #player dead
             if self.enemy_boss.is_player_defeated():
@@ -728,11 +833,14 @@ class TurnBasedBattle:
                 self.draw_item = False
             # ---------------------------------------
 
-            if self.current_attck_name:
-                self.display_attack_name(self.current_attck_name, self.scaled_enemy_image) #added enemy image
+            if self.current_attack_name:
+                self.display_attack_name(self.current_attack_name, self.scaled_enemy_image) #added enemy image
 
-            #draw the menu
-            self.draw_menu(self.option_colors)
+
+            #added
+            if self.player_turn:
+                #draw the menu
+                self.draw_menu(self.option_colors)
 
             #update the display
             pygame.display.flip()

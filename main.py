@@ -1,11 +1,9 @@
 import pygame, sys, json, os
 from settings import *
 from level import Level
-from player import PlayerData #added for persistence
-
-from party import Party #added for party system
+from player import PlayerData
+from party import Party
 from partyMembers import PartyMember
-
 from mainMenu import MainMenu
 
 pygame.font.init()
@@ -70,7 +68,7 @@ def draw_win(win_text, time_text):
     draw_time_text = WINNER_TIME_FONT.render(time_text, 1, WHITE)
     display_surface.blit(draw_time_text, (SCREEN_WIDTH//2 - draw_text.get_width()//2, SCREEN_HEIGHT//2 - draw_text.get_height()//2 + 150))
     pygame.display.update()
-    #pygame.time.delay(2000) #2 sec
+    pygame.time.delay(2000) #2 sec
 
 
 class Game:
@@ -81,7 +79,7 @@ class Game:
         self.player_data = player_data
 
         self.level = Level(self.levelSelect, self.player_data)
-        self.enemys = self.level.attack_sprites # if = <Group(0 sprites)> then win game
+        self.enemys = self.level.attack_sprites
         self.player = self.level.player1
 
         #making doors
@@ -97,9 +95,6 @@ class Game:
         pygame.display.set_caption("First Fantasy 2")
         self.clock = pygame.time.Clock()
 
-        #self.levelInt = 1
-        #3 is town, 5 is a boss fight
-       
         #crl + ] to mass indent highlighted code
 
         # load the player data
@@ -111,7 +106,7 @@ class Game:
            self.levelInt = self.player_data.levelInt
 
         else:
-            self.levelInt = 1
+            self.levelInt = 3 #1
             self.player_data = PlayerData()
             pass
 
@@ -125,14 +120,14 @@ class Game:
         folder_path = './Saves/'
         file_path = os.path.join(folder_path, 'player_data.json')
 
-        # convert player data to a dictionary
         data = {
             'health': player_data.health,
             'experience': player_data.experience,
             'coin': player_data.coin,
             'inventory': player_data.inventory,
             'spell_book': player_data.spell_book,
-            'levelInt': player_data.levelInt
+            'levelInt': player_data.levelInt,
+            'player_level': player_data.player_level
         }
 
         # save data to a JSON
@@ -177,7 +172,7 @@ class Game:
         while True:
             self.music = [pygame.mixer.Sound("Audio/Menu2.wav")]
             self.music_index = 0
-            self.music_player = self.music[self.music_index].play(loops=-1) #(loops = -1)
+            self.music_player = self.music[self.music_index].play(loops=-1)
 
             menu_result = self.main_menu.run()
 
@@ -193,14 +188,20 @@ class Game:
                     self.music_player.pause()
                     game = Game()
                     game.run()
-        
+                else:
+                    self.music_player.pause()
+
+
     
     def run(self):
 
-        self.level_change(self.levelInt, self.player_data) #added player data persistence
+        self.level_change(self.levelInt, self.player_data)
 
         while True:
             #check_controller()
+
+            #if self.level.paused:
+                #self.save_player_data(self.player_data)
 
             for event in pygame.event.get():
 
@@ -230,7 +231,10 @@ class Game:
                 # end controller
                 '''
 
+
             dt = self.clock.tick() / 1000
+            #dt = self.clock.tick(120) / 1000
+
 
             self.level.run(dt)
             pygame.display.update()
@@ -253,7 +257,7 @@ class Game:
 
             if len(self.doors) <= 0 and self.levelInt == 3: #3 to 4 shop
                 self.levelInt = 4 
-                self.player_data.levelInt = 4 #added 12/26
+                self.player_data.levelInt = 4
 
                 #adding a save here
                 self.save_player_data(self.player_data)
@@ -263,7 +267,7 @@ class Game:
 
             if len(self.doors) <= 0 and self.levelInt == 4: #4 shop to 3 town
                 self.levelInt = 3
-                self.player_data.levelInt = 3 #added 12/26
+                self.player_data.levelInt = 3
 
                 #adding a save here
                 self.save_player_data(self.player_data)
@@ -275,7 +279,7 @@ class Game:
             #town to boss
             if self.levelInt == 3 and self.player.pos.y <= 473:
                 self.levelInt = 5
-                self.player_data.levelInt = 5 #added 12/26
+                self.player_data.levelInt = 5
 
                 #adding a save here
                 self.save_player_data(self.player_data)
@@ -283,11 +287,26 @@ class Game:
                 self.level_change(self.levelInt, self.player_data) 
                 print("level change town to BOSS")
 
+            
+            #town to 2d platformer
+            #town to boss
+            if self.levelInt == 3 and self.player.pos.x <= 50:
+                self.levelInt = 6
+                self.player_data.levelInt = 6
+
+                #adding a save here
+                self.save_player_data(self.player_data)
+                
+                self.level_change(self.levelInt, self.player_data) 
+                print("level change town to PLATFORM")
+
+
+
 
             if self.levelInt == 5:
                 if len(self.boss) <= 0:
                     self.levelInt = 3
-                    self.player_data.levelInt = 3 #added 12/26
+                    self.player_data.levelInt = 3
 
                     #adding a save here
                     self.save_player_data(self.player_data)
@@ -295,15 +314,16 @@ class Game:
                     self.level_change(self.levelInt, self.player_data)
                     print("level change BOSS to TOWN")
 
-              
+            
             if self.player.health <= 0: #if all hp gone
                     self.screen
                     end_text = "YOU DIED"
-                    time_text = "Quiting"
+                    time_text = "Returning to Menu"
                     draw_win(end_text, time_text)
-                    pygame.quit()
-                    sys.exit()
-                    
+                    #pygame.quit()
+                    #sys.exit()
+                    self.menu()
+
 
 if __name__ == '__main__':
     game = Game()

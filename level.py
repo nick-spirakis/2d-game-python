@@ -65,6 +65,8 @@ class Level:
 
         self.player_data = player_data
 
+        self.player_data.player_pos = self.player1.posi
+
         
         #party
 
@@ -105,6 +107,8 @@ class Level:
         if self.levelNum == 5:
             self.setupFive()
 
+        if self.levelNum == 6:
+            self.setupSix()
 
         # UI
         self.overlay = Overlay(self.player1, self.player_data)
@@ -122,6 +126,9 @@ class Level:
 
         # npc
         self.npc_dialog_open = False
+
+        # pause
+        self.paused = False
 
 
         #joysticks controller work in progress
@@ -428,24 +435,68 @@ class Level:
         #self.music_player = self.music[self.music_index].play(loops=-1) #(loops = -1)
 
 
+# setup 6 is a minigame 2d platformer
+
+    def setupSix(self):
+
+        tmx_data = load_pygame('map6.tmx')
+
+        for layer in ['blocks']:
+            for x, y, surf in tmx_data.get_layer_by_name(layer).tiles():
+                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, [self.all_sprites, self.collision_sprites], LAYERS['ground']) #border
+
+        for layer in ['ground']:
+            for x, y, surf in tmx_data.get_layer_by_name(layer).tiles():
+                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, [self.all_sprites, self.collision_sprites], LAYERS['ground'])
+
+        for layer in ['sky']:
+            for x, y, surf in tmx_data.get_layer_by_name(layer).tiles():
+                Generic((x*TILE_SIZE, y*TILE_SIZE), surf, self.all_sprites, LAYERS['water'])
+
+       
+        #player
+        for obj in tmx_data.get_layer_by_name('player'):
+            if obj.name == 'start':
+                self.player1.posi=(obj.x, obj.y)
+
+
+        for obj in tmx_data.get_layer_by_name('item_block'):
+            if obj.name == 'start':
+                self.player1.posi=(obj.x, obj.y)
+                
+        
+
+        Generic(pos=(0,0), 
+                surf=pygame.image.load('map6.png').convert_alpha(), 
+                groups=self.all_sprites,
+                z=LAYERS['ground'])
+        
+
 #========================================================================================================================
 
 
     def player_add(self, item):
         #self.player1.item_inventory[item] += 1
         self.player_data.coin += 1 
+        
         self.player1.exp += 10
+        self.player_data.gain_experience(10)
 
     def player_add_brute(self, item):
         #self.player1.item_inventory[item] += 2
         self.player_data.coin += 2
+        
         self.player1.exp += 20
+        self.player_data.gain_experience(20)
 
-    # for turn based boss
+    # for turn based boss !!! NEEDS AN UPDATE
     def player_add_boss(self, item):
         #self.player1.item_inventory[item] += 5
         self.player_data.coin += 5
+        
         self.player1.exp += 50
+        self.player_data.gain_experience(50)
+
 
  # =================================================================
 
@@ -453,36 +504,45 @@ class Level:
         self.display_surface.fill('black')
 
         self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites, self.party_sprites, self.levelNum) #added levelNum
-        self.all_sprites.update(dt)
 
-        self.attack_sprites.update(dt)
 
-        self.door_sprites.update(dt)
+        #------------------------------------------------------------------------------------------------------------
 
-        #updating npc sprites
-        self.npc_sprites.update(dt)
-        #self.npc_sprites.draw(self.display_surface) #removed this to see if duplicates go away
 
-        #updating boss sprites
-        self.boss_sprites.update(dt)
-        self.boss_sprites.draw(self.display_surface)
+        # for spellbook
+        keys = pygame.key.get_pressed()
+        events = pygame.event.get()
 
-        self.overlay.display_items()
+        self.book_cooldown -= dt
+        if keys[pygame.K_BACKSLASH]:
+            if self.book_cooldown <= 0:
+                if not self.book_open:
+                    print("opening spellbook")
+                    self.book_open = True
+                    self.book.open_spellbook()
+                    print("spellbook displayed")
+                else:
+                    self.book_open = False
+                    print("spellbook closing")
+                self.book_cooldown = self.book_cooldown_length
+        if self.book_open:
+            self.book.navigate_options(events)
 
-        # Update the positions directly using the player's position
-        main_player_pos = self.player1.rect.topleft
-        for i, party_member in enumerate(self.party.members):
-            # Calculate relative position behind the player
-            party_member.rect.topleft = (main_player_pos[0], main_player_pos[1])
+            self.book.navigate_all_options(events)
 
-        self.party_sprites.update(dt)
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.book.swap_spells()
+        else:
+            self.book.close_spellbook()
 
-        #self.party_sprites.draw(self.display_surface) #(caused the duplicate penguin)
+
 
 
         #for shop
         self.shop_cooldown -= dt
-        keys = pygame.key.get_pressed()
+        #keys = pygame.key.get_pressed()
 
         if self.levelNum == 4:
             if keys[pygame.K_BACKSPACE]:
@@ -497,8 +557,6 @@ class Level:
                         self.shop_open = False
                         print("shop closing")
                     self.shop_cooldown = self.shop_cooldown_length
-
-        events = pygame.event.get()
 
         if self.shop_open:
             self.shop.navigate_options(events)
@@ -516,66 +574,78 @@ class Level:
             self.shop.close_shop1()
 
 
-        # for spellbook
-        self.book_cooldown -= dt
 
-        if keys[pygame.K_BACKSLASH]:
-            if self.book_cooldown <= 0:
-                if not self.book_open:
-                    print("opening spellbook")
-                    self.book_open = True
-                    self.book.open_spellbook()
-                    print("spellbook displayed")
-                    
-                else:
-                    self.book_open = False
-                    print("spellbook closing")
-                self.book_cooldown = self.book_cooldown_length
+        self.overlay.display_items()
 
 
         if self.book_open:
-            self.book.navigate_options(events)
-
-            self.book.navigate_all_options(events)
-
-            for event in events:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
-                        self.book.swap_spells()
-
+            self.paused = True
+        elif self.shop_open:
+            self.paused = True
         else:
-            self.book.close_spellbook()
+            self.paused = False
 
-        # for npcs
-        for npc in self.npc_sprites:
-            if npc.dialog_is_open():
-                npc.show_dialog(npc.text)
-                
-                # might add a feature to close if player gets too far from npc
-                for event in events:
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_RETURN:
-                            npc.close_dialog()
 
-        
-        # for turn based battle
-        if self.levelNum == 5:
-            self.battle_started = True
+        if not self.paused:
 
-        elif self.levelNum == 3:
-            self.battle_started = False
+            self.all_sprites.update(dt)
 
-            if self.boss_bg != None:
-                self.boss_bg.kill()
-                print("Killed boss bg")
-                
-                self.boss_bg.stop()
-                self.boss_bg = None
+            self.attack_sprites.update(dt)
 
-        if self.battle_started == True:
-            battle = TurnBasedBattle(self, self.player1, self.player_data, self.boss1, self.levelNum, self.overlay, self.party) #added party
-            battle.run()
+            self.door_sprites.update(dt)
+
+            #updating npc sprites
+            self.npc_sprites.update(dt)
+            #self.npc_sprites.draw(self.display_surface) #removed this to see if duplicates go away
+
+            #updating boss sprites
+            self.boss_sprites.update(dt)
+            self.boss_sprites.draw(self.display_surface)
+
+            #self.overlay.display_items() #moved above the pause
+
+            # Update the positions directly using the player's position
+            main_player_pos = self.player1.rect.topleft
+            for i, party_member in enumerate(self.party.members):
+                # Calculate relative position behind the player
+                party_member.rect.topleft = (main_player_pos[0], main_player_pos[1])
+
+            self.party_sprites.update(dt)
+
+            #self.party_sprites.draw(self.display_surface) #(caused the duplicate penguin)
+
+
+
+            # for npcs
+            for npc in self.npc_sprites:
+                if npc.dialog_is_open():
+                    npc.show_dialog(npc.text)
+                    
+                    # might add a feature to close if player gets too far from npc
+                    for event in events:
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_RETURN:
+                                npc.close_dialog()
+
             
+            # for turn based battle
+            if self.levelNum == 5:
+                self.battle_started = True
+
+            elif self.levelNum == 3:
+                self.battle_started = False
+
+                if self.boss_bg != None:
+                    self.boss_bg.kill()
+                    print("Killed boss bg")
+                    
+                    self.boss_bg.stop()
+                    self.boss_bg = None
+
+            if self.battle_started == True:
+                battle = TurnBasedBattle(self, self.player1, self.player_data, self.boss1, self.levelNum, self.overlay, self.party) #added party
+                battle.run()
+                
 
 class CameraGroup(pygame.sprite.Group):
     def __init__(self):
@@ -606,7 +676,7 @@ class CameraGroup(pygame.sprite.Group):
                         hitbox_rect.center = offset_rect.center
                         target_pos = offset_rect.center + PLAYER_TOOL_OFFSET[player.status.split('_')[0]]
                         # draw sword hitbox
-                        #pygame.draw.circle(self.display_surface, 'blue', target_pos, 5)
+                        pygame.draw.circle(self.display_surface, 'blue', target_pos, 5)
             
             # new blasts for brute
             for brute in brute_sprites:
@@ -628,7 +698,7 @@ class CameraGroup(pygame.sprite.Group):
                 book.show_menu(book.options)
                 book.show_all_spells(book.unlocked_spells)
         
-            # Draw party members with a slightly increased offset
+            # Draw party members
 
             # Check if the player is moving before updating last_known_direction
             if player.direction.x != 0 or player.direction.y != 0:
@@ -641,33 +711,45 @@ class CameraGroup(pygame.sprite.Group):
                 elif player.direction.y == 1:
                     self.last_known_direction = (0, 1)
 
-            for party_member in party_sprites:
-                offset_rect = party_member.rect.copy()
-                offset_rect.center -= self.offset
 
-                if levelNum == 5: 
-                    offset_rect.x += 10
-                    offset_rect.y -= 40  
-                    party_member.status = "right"
-                else:
-                    if self.last_known_direction == (-1, 0):
-                        offset_rect.x += 20  # Adjust this value to control the horizontal distance
-                        offset_rect.y += 10  # Adjust this value to control the vertical distance
-                        party_member.status = "left"
+            if levelNum != 6:
 
-                    elif self.last_known_direction == (1, 0):
-                        offset_rect.x -= 20  
-                        offset_rect.y += 10  
+                for party_member in party_sprites:
+                    offset_rect = party_member.rect.copy()
+                    offset_rect.center -= self.offset
+
+                    if levelNum == 5: 
+                        offset_rect.x += 10
+                        offset_rect.y -= 40  
                         party_member.status = "right"
+                    else:
+                        if self.last_known_direction == (-1, 0):
+                            offset_rect.x += 20  # horizontal distance
+                            offset_rect.y += 10  # vertical distance
+                            party_member.status = "left"
 
-                    elif self.last_known_direction == (0, -1):
-                        offset_rect.y += 50  
-                        party_member.status = "up"
+                        elif self.last_known_direction == (1, 0):
+                            offset_rect.x -= 20  
+                            offset_rect.y += 10  
+                            party_member.status = "right"
 
-                    elif self.last_known_direction == (0, 1):
-                        offset_rect.y -= 30  
-                        party_member.status = "down"
+                        elif self.last_known_direction == (0, -1):
+                            offset_rect.y += 50  
+                            party_member.status = "up"
 
-                self.display_surface.blit(party_member.image, offset_rect)
-                #print(self.last_known_direction)
+                        elif self.last_known_direction == (0, 1):
+                            offset_rect.y -= 30  
+                            party_member.status = "down"
+
+                    self.display_surface.blit(party_member.image, offset_rect)
+                    #print(self.last_known_direction)
+
+            if levelNum == 6:
+                if player.direction.x == 1:
+                    player.image = pygame.image.load('./Assets/penguin/right/0.png') #player.animations[player.status][player.frame_index]
+                elif player.direction.x == -1:
+                    player.image = pygame.image.load('./Assets/penguin/left/0.png')
+                else:
+                    player.image = pygame.image.load('./Assets/penguin/right/0.png')
+
 

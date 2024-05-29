@@ -11,10 +11,13 @@ class PlayerData:
     def __init__(self):
         self.health = 100
         self.experience = 0
+
+        self.player_level = 1 
+        self.max_experience = 50
+
         self.coin = 0
         self.inventory = []
-        #added below
-        self.spell_book = ["spell 1", "Dia", "Hellfire"] # ["spell 1", "spell 2", "spell 3"]
+        self.spell_book = ["spell 1", "Dia", "Hellfire"]
         self.unlocked_spells = ["spell 1", "Dia", "Hellfire", "Metia", "Red Roc"] # added for spell book
         self.levelInt = 1
 
@@ -25,6 +28,26 @@ class PlayerData:
 
     def get_coins(self):
         return self.coin
+    
+    # added
+    def gain_experience(self, amount):
+        self.experience += amount
+
+    
+    def update_experience(self, exp):
+        #print("CALLED")
+        self.experience = exp
+        #print(f'update experience: {self.experience}')
+        return self.experience
+    
+    def get_exp(self):
+        #print(f'get experience: {self.experience}')
+        return self.experience
+
+    def get_experience_percentage(self):
+        return (self.experience / self.max_experience) * 100
+    # -----------------------------------------------------------------
+    
     
     def get_health(self):
         return self.health
@@ -37,7 +60,8 @@ class PlayerData:
             "coin": self.coin,
             "inventory": self.inventory,
             "spell_book": self.spell_book,
-            "leve_int": self.levelInt
+            "leve_int": self.levelInt,
+            "player_level": self.player_level
         }
 
     @classmethod
@@ -49,6 +73,8 @@ class PlayerData:
         player_data.inventory = data.get("inventory", [])
         player_data.spell_book = data.get("spell_book", ["spell 1", "Dia", "Hellfire"])
         player_data.levelInt = data.get("levelInt", 1)
+        player_data.player_level = data.get("player_level", 1)
+
         return player_data
     #------------------------------------------------------------------------------------
 
@@ -132,6 +158,13 @@ class Player(pygame.sprite.Sprite):
         self.spell_index = 0
 
         self.speed = self.stats['speed']
+
+
+        # gravity for 2d parts
+        self.levelInt = self.player_data.levelInt
+        self.gravity = 0.9  # Adjust gravity as needed
+        self.vertical_velocity = 0
+        self.on_ground = False
 
 
     def add_coins(self):
@@ -219,10 +252,10 @@ class Player(pygame.sprite.Sprite):
         if not self.timers["item use"].active:
 
             # keyboard movement
-            if keys[pygame.K_UP]:
+            if keys[pygame.K_UP] and self.levelInt != 6:
                 self.direction.y = -1
                 self.status = 'up'
-            elif keys[pygame.K_DOWN]:
+            elif keys[pygame.K_DOWN] and self.levelInt != 6:
                 self.direction.y = 1
                 self.status = 'down'
             else:
@@ -238,7 +271,7 @@ class Player(pygame.sprite.Sprite):
                 self.direction.x = 0
 
             # keyboard item use
-            if keys[pygame.K_SPACE]:
+            if keys[pygame.K_SPACE] and self.levelInt != 6:
                 self.timers["item use"].activate()
                 self.direction = pygame.math.Vector2()
                 self.frame_index = 0
@@ -343,7 +376,6 @@ class Player(pygame.sprite.Sprite):
         self.enemy_collision('horizontal')
         self.collision('horizontal')
 
-        #vert movement
         self.pos.y += self.direction.y * self.speed * dt
         self.hitbox.centery = round(self.pos.y)
         self.rect.centery = self.hitbox.centery
@@ -351,7 +383,28 @@ class Player(pygame.sprite.Sprite):
         self.enemy_collision('vertical')
         self.collision('vertical')
 
+    
+    def apply_gravity(self):
+        if not self.on_ground:
+            print("not on ground")
+            self.vertical_velocity += self.gravity
+            self.hitbox.centery += self.vertical_velocity
+            self.rect.y += self.vertical_velocity
 
+
+    def handle_jumping(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and self.on_ground:
+            self.vertical_velocity = - 6 #-60
+            self.on_ground = False
+
+        for sprite in self.collision_sprites.sprites():
+            if hasattr(sprite, 'hitbox') and not hasattr(sprite, 'invul_timer'):
+                if sprite.hitbox.colliderect(self.hitbox):
+                        print("on ground")
+                        self.on_ground = True
+
+                    
     def update(self, dt):
             self.animate(dt)
             self.input()
@@ -362,8 +415,9 @@ class Player(pygame.sprite.Sprite):
 
             # updating persistence player
             self.player_data.health = self.health
-            self.player_data.experience = self.exp
+
+            if self.levelInt == 6:
+                self.apply_gravity()
+                self.handle_jumping()
 
             
-            #print("health is: %f" % self.player_data.health)
-

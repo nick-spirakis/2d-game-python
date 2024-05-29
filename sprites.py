@@ -15,7 +15,7 @@ class Generic(pygame.sprite.Sprite):
         self.image = surf
         self.rect = self.image.get_rect(topleft = pos)
         self.z = z
-        self.hitbox = self.rect.copy().inflate(-self.rect.width * 0.2, -self.rect.height * 0.75)
+        self.hitbox = self.rect.copy().inflate(-self.rect.width * 0.2, -self.rect.height *0.75)
 
 
 # animated water generic
@@ -253,8 +253,8 @@ class Npc(pygame.sprite.Sprite):
 
         self.moving = False
         self.delay_timer = 0
-        self.delay_duration = 85 #60
-        self.speed = 1  # Speed of movement
+        self.delay_duration = 800 #85
+        self.speed = 0.8 #1  # Speed of movement
     
 
     def import_assets(self):
@@ -278,8 +278,7 @@ class Npc(pygame.sprite.Sprite):
     def walk(self):
         if self.npc_name == "Nick":
             if not self.moving:
-                # Choose a random spot
-                
+                #choose a random spot
                 random_angle = random.uniform(0, 2 * math.pi)
                 random_distance = random.uniform(0, self.radius)
                 self.destination = pygame.math.Vector2(
@@ -289,15 +288,15 @@ class Npc(pygame.sprite.Sprite):
                 self.moving = True
 
             if self.moving:
-                # Move to spot
+                # move to spot
                 direction = (self.destination - self.pos).normalize()
                 self.pos += direction * self.speed
                 self.pos = pygame.math.Vector2(round(self.pos.x), round(self.pos.y))  # Round the position
                 self.rect.center = self.pos
 
-                # Check if at spot then wait
+                #check if at spot then wait
                 if self.pos.distance_to(self.destination) <= 1:
-                    self.delay_timer += 1
+                    self.delay_timer += 1 # +=1
                     if self.delay_timer >= self.delay_duration:
                         self.delay_timer = 0
                         self.moving = False
@@ -697,7 +696,7 @@ class Brute(pygame.sprite.Sprite):
 
 
     def update(self, dt):
-        #pygame.draw.rect(self.surface, 'green', self.green_box, 5) # player hitbox visual
+        pygame.draw.rect(self.surface, 'green', self.green_box, 5) # player hitbox visual
         self.move(dt)
 
         for blast in self.blast_list:
