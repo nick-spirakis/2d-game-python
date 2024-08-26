@@ -2,7 +2,7 @@ import pygame
 from settings import *
 from player import Player
 from overlay import Overlay
-from sprites import Generic, Water, Monster, Brute, Entry, Npc, Boss
+from sprites import Generic, Water, Monster, Brute, Entry, Npc, Boss, Chests #added chests
 from pytmx.util_pygame import load_pygame
 import random
 from support import *
@@ -19,6 +19,8 @@ from turnBasedBattle import TurnBasedBattle
 
 from party import Party
 from partyMembers import PartyMember
+
+from chest import Chest
 
 class Level:
     def __init__(self, levelNum, player_data): #added player data
@@ -46,6 +48,8 @@ class Level:
         #making a boss
         self.boss_sprites = pygame.sprite.Group()
 
+        self.chest_sprites = pygame.sprite.Group() #added
+
 
         map_filename = f"map{levelNum}.tmx"
         player_start = self.get_player_start_position(map_filename)
@@ -58,7 +62,8 @@ class Level:
                     attack_sprites=self.attack_sprites,
                     door_sprites=self.door_sprites, #added door sprites
                     player_data= player_data, #added player persistence data
-                    npc_sprites = self.npc_sprites) #added npc sprites
+                    npc_sprites = self.npc_sprites, #added npc sprites
+                    chest_sprites = self.chest_sprites) #added chets sprites
         
 
         self.player1.posi = pygame.math.Vector2(self.player1.posi)
@@ -255,7 +260,7 @@ class Level:
         #self.music_player = self.music[self.music_index].play(loops=-1) #(loops = -1)
 
 #-----------------------------------------------------------------------------------------------------------------
-
+# is town
     def setupThree(self):
 
         tmx_data = load_pygame('map3.tmx')
@@ -331,6 +336,34 @@ class Level:
 
                 self.npc_sprites.add(npc2)
                 print("Added NPC 'Will' to self.npc_sprites")      
+        
+        #chests
+        # Load the chest
+        for obj in tmx_data.get_layer_by_name('chest'):
+            if obj.name == 'trap':
+                chest_pos = (obj.x, obj.y)
+                chest = Chests(
+                    pos=chest_pos,
+                    groups=[self.all_sprites, self.collision_sprites, self.chest_sprites],
+                    z=LAYERS['main'],  # Or whatever layer is appropriate
+                    player=self.player1,  # Assuming player1 is your player instance
+                    player_data=self.player_data,
+                    chest_type = 'trap'
+                )
+                self.chest_sprites.add(chest)
+            
+            if obj.name == 'normal':
+                chest_pos = (obj.x, obj.y)
+                chest = Chests(
+                    pos=chest_pos,
+                    groups=[self.all_sprites, self.collision_sprites, self.chest_sprites],
+                    z=LAYERS['main'],  # Or whatever layer is appropriate
+                    player=self.player1,  # Assuming player1 is your player instance
+                    player_data=self.player_data,
+                    chest_type = 'normal'
+                )
+                self.chest_sprites.add(chest)
+
 
         if self.boss_bg:
             self.boss_bg.kill()
@@ -503,7 +536,7 @@ class Level:
     def run(self, dt):
         self.display_surface.fill('black')
 
-        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites, self.party_sprites, self.levelNum) #added levelNum
+        self.all_sprites.custom_draw(self.player1, self.shop, self.npc_sprites, self.book, self.brute_sprites, self.party_sprites, self.levelNum, self.chest_sprites) #added chets
 
 
         #------------------------------------------------------------------------------------------------------------
@@ -594,6 +627,8 @@ class Level:
 
             self.door_sprites.update(dt)
 
+            self.chest_sprites.update(dt)
+
             #updating npc sprites
             self.npc_sprites.update(dt)
             #self.npc_sprites.draw(self.display_surface) #removed this to see if duplicates go away
@@ -659,7 +694,7 @@ class CameraGroup(pygame.sprite.Group):
         self.last_known_direction = (0, 0)
 
 
-    def custom_draw(self, player, shop, npc_sprites, book, brute_sprites, party_sprites, levelNum): #added levelNum
+    def custom_draw(self, player, shop, npc_sprites, book, brute_sprites, party_sprites, levelNum, chest_sprites): #added chets
         self.offset.x = player.rect.centerx - self.half_width 
         self.offset.y = player.rect.centery - self.half_height
 
@@ -697,7 +732,7 @@ class CameraGroup(pygame.sprite.Group):
             if book.is_open():
                 book.show_menu(book.options)
                 book.show_all_spells(book.unlocked_spells)
-        
+
             # Draw party members
 
             # Check if the player is moving before updating last_known_direction

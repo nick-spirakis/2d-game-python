@@ -200,7 +200,67 @@ class Entry(pygame.sprite.Sprite): #Generic
         
         self.animate(dt)
 
+# ======================================================================================================================
+# ======================================================================================================================
 
+class Chests(pygame.sprite.Sprite):
+    def __init__(self, pos, groups, z, player, player_data, chest_type):
+        super().__init__(groups)
+
+        self.import_assets()
+        self.frame_index = 0
+        self.status = 'closed'
+
+        self.image = self.animations[self.status][self.frame_index]
+        self.rect = self.image.get_rect(topleft=pos)
+        self.z = z
+
+        self.pos = pygame.math.Vector2(self.rect.center)
+        self.hitbox = self.rect.copy().inflate(-self.rect.width * 0.2, -self.rect.height * 0.75)
+
+        self.is_open = False
+        self.player = player
+        self.coins_reward = 15
+
+        self.player_data = player_data
+
+        self.chest_type = chest_type
+
+    def import_assets(self):
+        self.animations = {'closed': [], 'open': []}
+        
+        for animation in self.animations.keys():
+            full_path = './Graphics/chest/' + animation
+            self.animations[animation] = import_folder(full_path)
+
+    def animate(self, dt):
+        self.frame_index += 2 * dt
+        if self.frame_index >= len(self.animations[self.status]):
+            self.frame_index = 0
+
+        self.image = self.animations[self.status][int(self.frame_index)]
+
+    def interact(self): #open_chest
+        if not self.is_open:
+            self.is_open = True
+            self.status = 'open'
+            # self.player_data.coin += self.coins_reward  # Award the player with coins
+            if self.chest_type == 'trap':
+                self.player_data.health = 0
+                self.player.health = 0
+            if self.chest_type == 'normal':
+                self.player_data.coin += self.coins_reward  # Award the player with coins
+
+    def check_interaction(self):
+        if self.hitbox.colliderect(self.player.hitbox) and not self.is_open:
+            self.open_chest()
+
+    def update(self, dt):
+        #self.check_interaction()
+        self.animate(dt)
+
+# ======================================================================================================================
+# ======================================================================================================================
 
 # NPC GENERIC
 class Npc(pygame.sprite.Sprite):

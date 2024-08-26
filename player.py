@@ -80,7 +80,7 @@ class PlayerData:
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, posi, group, collision_sprites, attack_sprites, door_sprites, player_data, npc_sprites): # added npc_sprites, added player_data for persistence
+    def __init__(self, posi, group, collision_sprites, attack_sprites, door_sprites, player_data, npc_sprites, chest_sprites): # added chest_sprites, npc_sprites, added player_data for persistence
         super().__init__(group)
 
         #moved here - was above self.pos
@@ -118,7 +118,10 @@ class Player(pygame.sprite.Sprite):
         #npc spries
         self.npc_sprites = npc_sprites
 
+        #chest sprites
+        self.chest_sprites = chest_sprites
 
+        
         self.swing = pygame.mixer.Sound(os.path.join('Audio', 'blast.mp3'))
 
         self.hit = pygame.mixer.Sound(os.path.join('Audio', 'clap.mp3'))
@@ -193,6 +196,10 @@ class Player(pygame.sprite.Sprite):
             for npc in self.npc_sprites.sprites():
                 if npc.rect.collidepoint(self.target_pos):
                     npc.play_message()
+
+            for chest in self.chest_sprites.sprites(): #added
+                if chest.rect.collidepoint(self.target_pos):
+                    chest.interact()
 
 
     def get_target_pos(self): #where the sword hits an enemy
